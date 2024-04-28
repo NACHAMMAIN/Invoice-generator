@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Invoice Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+    form {
+      max-width: 500px;
+      margin: auto;
+    }
+    .product {
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Invoice Generator</h1>
+  <form id="invoiceForm">
+    <label>Date:</label>
+    <input type="date" name="date" required><br>
+
+    <label>Client Name:</label>
+    <input type="text" name="clientName" required><br>
+
+    <label>Client Address:</label>
+    <textarea name="clientAddress" required></textarea><br>
+
+    <h3>Products/Services</h3>
+    <div id="products">
+      <div class="product">
+        <input type="text" name="description" placeholder="Description" required>
+        <input type="number" name="quantity" placeholder="Quantity" value="1" required>
+        <input type="number" name="price" placeholder="Price" step="0.01" required>
+      </div>
+    </div>
+    <button type="button" onclick="addProduct()">Add Product</button><br>
+    <button type="submit">Generate Invoice</button>
+  </form>
+
+  <script>
+    // Function to add more product fields
+    function addProduct() {
+      const productsDiv = document.getElementById("products");
+      const newProduct = document.createElement("div");
+      newProduct.className = "product";
+      newProduct.innerHTML = `
+        <input type="text" name="description" placeholder="Description" required>
+        <input type="number" name="quantity" placeholder="Quantity" value="1" required>
+        <input type="number" name="price" placeholder="Price" step="0.01" required>
+      `;
+      productsDiv.appendChild(newProduct);
+    }
+
+    // Handle form submission
+    document.getElementById("invoiceForm").onsubmit = async function (e) {
+      e.preventDefault();
+
+      // Gather form data
+      const formData = new FormData(e.target);
+      const invoiceData = {
+        date: formData.get("date"),
+        clientName: formData.get("clientName"),
+        clientAddress: formData.get("clientAddress"),
+        products: []
+      };
+
+      const products = document.querySelectorAll(".product");
+      products.forEach((product) => {
+        invoiceData.products.push({
+          description: product.querySelector('input[name="description"]').value,
+          quantity: parseInt(product.querySelector('input[name="quantity"]').value),
+          price: parseFloat(product.querySelector('input[name="price"]').value),
+        });
+      });
+
+      // Send data to backend
+      const response = await fetch("/generate-invoice", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(invoiceData),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const downloadUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = downloadUrl;
+        a.download = "invoice.pdf";
+        a.click();
+        URL.revokeObjectURL(downloadUrl);
+      }
+    };
+  </script>
+</body>
+</html>
